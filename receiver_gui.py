@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import tkinter as tk
 from tkinter import ttk
 import socket
@@ -10,7 +9,6 @@ import sys
 import os
 import datetime
 
-# Add current directory to path
 sys.path.append(os.getcwd())
 
 try:
@@ -21,7 +19,6 @@ except ImportError:
     from utils.sensor_receiver import SensorReceiver
     from utils.video_receiver import VideoReceiver
 
-# --- Theme Constants ---
 COLOR_BG = "#1e1e1e"
 COLOR_FG = "#ffffff"
 COLOR_ACCENT = "#007acc"
@@ -40,46 +37,38 @@ class DroneReceiverGUI:
         self.root.geometry("1200x800")
         self.root.configure(bg=COLOR_BG)
         
-        # Variables
         self.network_interfaces = self.detect_network_interfaces()
         _, self.ip_address = self.select_best_ip(self.network_interfaces)
         self.running = True
         self.current_camera = "back" 
         self.show_debug = True
         
-        # Styles
+        
         self.setup_styles()
         
-        # Layout
         self.create_widgets()
         
-        # Receivers
         self.BASE_PORT = 5000
         self.setup_receivers()
         
-        # Update Loop
         self.update_gui()
 
     def setup_styles(self):
         style = ttk.Style()
         style.theme_use('clam')
         
-        # Frame
         style.configure("Dark.TFrame", background=COLOR_BG)
         style.configure("Panel.TFrame", background=COLOR_PANEL, relief="flat")
         
-        # Label
         style.configure("TLabel", background=COLOR_BG, foreground=COLOR_FG, font=FONT_MAIN)
         style.configure("Header.TLabel", background=COLOR_BG, foreground=COLOR_SUCCESS, font=FONT_HEADER)
         style.configure("SubLabel.TLabel", background=COLOR_BG, foreground="#aaaaaa", font=("Segoe UI", 10))
         style.configure("Panel.TLabel", background=COLOR_PANEL, foreground=COLOR_FG, font=FONT_MAIN)
         style.configure("Data.TLabel", background=COLOR_PANEL, foreground=COLOR_SUCCESS, font=FONT_MONO)
         
-        # Button
         style.configure("TButton", background=COLOR_ACCENT, foreground=COLOR_FG, borderwidth=0, font=("Segoe UI", 10, "bold"))
         style.map("TButton", background=[("active", "#0062a3")])
         
-        # Labelframe
         style.configure("TLabelframe", background=COLOR_BG, foreground=COLOR_FG, bordercolor=COLOR_BORDER)
         style.configure("TLabelframe.Label", background=COLOR_BG, foreground=COLOR_FG)
 
@@ -100,16 +89,13 @@ class DroneReceiverGUI:
                 if not line:
                     continue
                     
-                # Check for adapter line (ends with :)
                 if (line.startswith("Ethernet adapter") or line.startswith("Wireless LAN adapter")) and line.endswith(":"):
                     current_adapter = line.replace(":", "").strip()
                 
-                # Check for IP
                 if current_adapter and "IPv4 Address" in line:
                     parts = line.split(":")
                     if len(parts) > 1:
                         ip = parts[-1].strip()
-                        # Remove any trailing info like (Preferred)
                         if "(" in ip:
                             ip = ip.split("(")[0].strip()
                         interfaces[current_adapter] = ip
@@ -120,18 +106,15 @@ class DroneReceiverGUI:
 
     def select_best_ip(self, interfaces):
         """Select the most likely Wi-Fi IP, or fallback to any."""
-        # Return tuple (name, ip)
-        # Priority 1: "Wi-Fi" in name
+       
         for name, ip in interfaces.items():
             if "wi-fi" in name.lower():
                 return name, ip
         
-        # Priority 2: "Wireless" in name
         for name, ip in interfaces.items():
             if "wireless" in name.lower():
                 return name, ip
 
-        # Priority 3: Any non-localhost
         for name, ip in interfaces.items():
             if ip and not ip.startswith("127.") and not ip.startswith("169.254"):
                 return name, ip
@@ -149,28 +132,23 @@ class DroneReceiverGUI:
         self.log(f"Selected IP: {self.ip_address}")
 
     def create_widgets(self):
-        # Main Container
         main_container = ttk.Frame(self.root, style="Dark.TFrame")
         main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
-        # --- Header ---
         header_frame = ttk.Frame(main_container, style="Dark.TFrame")
         header_frame.pack(fill=tk.X, pady=(0, 20))
         
-        # IP Display (Now a Dropdown)
         ip_frame = ttk.Frame(header_frame, style="Dark.TFrame")
         ip_frame.pack(side=tk.LEFT)
         
         ttk.Label(ip_frame, text="Select IP Address:", style="SubLabel.TLabel").pack(anchor="w")
         
-        # Prepare values for Combobox: "Name: IP"
         combo_values = [f"{name}: {ip}" for name, ip in self.network_interfaces.items()]
         
         self.ip_var = tk.StringVar()
         self.ip_combo = ttk.Combobox(ip_frame, textvariable=self.ip_var, values=combo_values, state="readonly", width=40, font=("Segoe UI", 12))
         self.ip_combo.pack(anchor="w", pady=(2, 0))
         
-        # Set default selection
         best_name, best_ip = self.select_best_ip(self.network_interfaces)
         default_val = f"{best_name}: {best_ip}"
         if default_val in combo_values:
@@ -178,7 +156,6 @@ class DroneReceiverGUI:
         elif combo_values:
              self.ip_combo.current(0)
              
-        # Connection Info Box
         info_frame = ttk.Frame(header_frame, style="Panel.TFrame", padding=10)
         info_frame.pack(side=tk.RIGHT)
         
@@ -186,18 +163,15 @@ class DroneReceiverGUI:
         self.create_port_label(info_frame, "Camera Back", 5001)
         self.create_port_label(info_frame, "Camera Front", 5002)
 
-        # --- Content Area ---
         content_frame = ttk.Frame(main_container, style="Dark.TFrame")
         content_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Left: Video
         video_panel = ttk.LabelFrame(content_frame, text=" Live Feed ", padding=2)
         video_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
         
         self.video_canvas = tk.Canvas(video_panel, bg="black", highlightthickness=0)
         self.video_canvas.pack(fill=tk.BOTH, expand=True)
         
-        # Camera Controls
         controls = ttk.Frame(video_panel, style="Dark.TFrame", padding=5)
         controls.pack(fill=tk.X)
         
@@ -213,11 +187,9 @@ class DroneReceiverGUI:
         self.lbl_cam_status = ttk.Label(controls, text="Waiting for stream...", foreground=COLOR_WARNING)
         self.lbl_cam_status.pack(side=tk.RIGHT, padx=5)
 
-        # Right: Telemetry
         data_panel = ttk.LabelFrame(content_frame, text=" Telemetry ", padding=10)
         data_panel.pack(side=tk.RIGHT, fill=tk.Y, padx=(10, 0))
         
-        # Telemetry Grid
         self.lbl_fps_back = self.create_data_row(data_panel, "Back FPS:", "0", 0)
         self.lbl_fps_front = self.create_data_row(data_panel, "Front FPS:", "0", 1)
         self.lbl_sensor_rate = self.create_data_row(data_panel, "Sensor Rate:", "0 Hz", 2)
@@ -231,7 +203,6 @@ class DroneReceiverGUI:
         self.lbl_pitch = self.create_data_row(data_panel, "Pitch:", "0.0°", 8)
         self.lbl_yaw = self.create_data_row(data_panel, "Yaw:", "0.0°", 9)
         
-        # Debug Log Area
         debug_frame = ttk.LabelFrame(main_container, text=" System Log ", padding=5)
         debug_frame.pack(fill=tk.X, pady=(10, 0))
         
@@ -246,7 +217,6 @@ class DroneReceiverGUI:
 
     def create_data_row(self, parent, label, value, row):
         ttk.Label(parent, text=label, style="Panel.TLabel").grid(row=row, column=0, sticky="w", pady=2)
-        # Fixed width for data labels to prevent jitter
         lbl = ttk.Label(parent, text=value, style="Data.TLabel", width=18)
         lbl.grid(row=row, column=1, sticky="e", pady=2, padx=(10, 0))
         return lbl
@@ -255,7 +225,6 @@ class DroneReceiverGUI:
         self.log("Starting receivers...")
         self.sensor_receiver = SensorReceiver(port=self.BASE_PORT)
         
-        # Add callbacks to log unexpected errors or packet info if needed
         self.back_receiver = VideoReceiver(port=self.BASE_PORT + 1, name="Back")
         self.front_receiver = VideoReceiver(port=self.BASE_PORT + 2, name="Front")
         
@@ -282,12 +251,10 @@ class DroneReceiverGUI:
     def set_camera(self, camera_name):
         self.current_camera = camera_name
         self.log(f"Switched to {camera_name.title()} camera view")
-        # Reset buttons to normal
         self.btn_back.configure(state="normal")
         self.btn_front.configure(state="normal")
         self.btn_both.configure(state="normal")
         
-        # Disable active button
         if camera_name == "back":
             self.btn_back.configure(state="disabled")
         elif camera_name == "front":
@@ -299,16 +266,13 @@ class DroneReceiverGUI:
         if not self.running:
             return
 
-        # 1. Update Video
         frame = None
         
         if self.current_camera == "both":
-            # Dual View logic
             import numpy as np
             f_back = self.back_receiver.frame
             f_front = self.front_receiver.frame
             
-            # Create placeholders if missing
             if f_back is None:
                 f_back = np.zeros((480, 640, 3), dtype=np.uint8)
                 cv2.putText(f_back, "Back Cam Waiting...", (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
@@ -316,7 +280,6 @@ class DroneReceiverGUI:
                 f_front = np.zeros((480, 640, 3), dtype=np.uint8)
                 cv2.putText(f_front, "Front Cam Waiting...", (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
                 
-            # Resize front to match back height
             h, w = f_back.shape[:2]
             f_front_resized = f_front
             if f_front.shape[0] != h:
@@ -330,7 +293,6 @@ class DroneReceiverGUI:
             self.lbl_cam_status.configure(text=status, foreground=COLOR_SUCCESS)
 
         else:
-            # Single View Logic
             current_receiver = self.back_receiver if self.current_camera == "back" else self.front_receiver
             
             if current_receiver.frame is not None:
@@ -340,11 +302,10 @@ class DroneReceiverGUI:
                 self.lbl_cam_status.configure(text=f"Waiting for {self.current_camera} connection...", foreground=COLOR_WARNING)
 
         if frame is not None:
-            # Resize logic to fit canvas
             c_w = self.video_canvas.winfo_width()
             c_h = self.video_canvas.winfo_height()
             
-            if c_w > 10 and c_h > 10: # Ensure valid dimensions
+            if c_w > 10 and c_h > 10: 
                 h, w = frame.shape[:2]
                 scale = min(c_w/w, c_h/h)
                 new_w, new_h = int(w*scale), int(h*scale)
@@ -356,7 +317,6 @@ class DroneReceiverGUI:
                 imgtk = ImageTk.PhotoImage(image=img)
                 
                 self.video_canvas.delete("all")
-                # Center image
                 x_center = c_w // 2
                 y_center = c_h // 2
                 self.video_canvas.create_image(x_center, y_center, anchor=tk.CENTER, image=imgtk)
@@ -371,7 +331,6 @@ class DroneReceiverGUI:
                 font=("Segoe UI", 20, "bold")
             )
 
-        # 2. Update Stats
         self.lbl_fps_back.configure(text=str(self.back_receiver.fps))
         self.lbl_fps_front.configure(text=str(self.front_receiver.fps))
         self.lbl_sensor_rate.configure(text=f"{self.sensor_receiver.rate} Hz")
@@ -385,8 +344,7 @@ class DroneReceiverGUI:
             self.lbl_pitch.configure(text=f"{d.attitude[1]:.1f}°")
             self.lbl_yaw.configure(text=f"{d.attitude[2]:.1f}°")
 
-        # Periodically log if we are receiving bytes but no valid frames (debugging)
-        # Check every 2 seconds
+        
         if int(time.time()) % 2 == 0:
             pass 
 
