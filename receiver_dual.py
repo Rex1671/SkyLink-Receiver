@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Dual Camera Receiver - Display both cameras with multiple view modes
 
@@ -33,7 +32,6 @@ except ImportError:
 from utils import SensorReceiver, VideoReceiver
 
 
-# Default ports
 DEFAULT_SENSOR_PORT = 5000
 DEFAULT_VIDEO_BACK_PORT = 5001
 DEFAULT_VIDEO_FRONT_PORT = 5002
@@ -50,24 +48,20 @@ class DisplayMode(IntEnum):
 def draw_overlay(frame, sensor_data, fps, camera_name, sensor_rate, compact=False):
     """Draw sensor data overlay on frame."""
     if compact:
-        # Compact overlay for PIP
         cv2.putText(frame, f"{camera_name} {fps}fps", 
                    (5, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
         return frame
     
     h, w = frame.shape[:2]
     
-    # Semi-transparent background
     overlay = frame.copy()
     cv2.rectangle(overlay, (5, 5), (290, 165), (0, 0, 0), -1)
     cv2.addWeighted(overlay, 0.6, frame, 0.4, 0, frame)
     
-    # Title
     y = 25
     cv2.putText(frame, f"{camera_name} | {fps} FPS | Sensor: {sensor_rate} Hz", 
                (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
     
-    # Sensor data
     d = sensor_data
     y += 25
     cv2.putText(frame, f"Accel:  X:{d.acc[0]:6.2f}  Y:{d.acc[1]:6.2f}  Z:{d.acc[2]:6.2f}", 
@@ -113,18 +107,14 @@ def create_pip_view(main_frame, pip_frame, pip_label, pip_fps):
     """Create picture-in-picture view."""
     h, w = main_frame.shape[:2]
     
-    # PIP size (1/4 of main)
     pip_w, pip_h = w // 4, h // 4
     pip_resized = cv2.resize(pip_frame, (pip_w, pip_h))
     
-    # Add border
     cv2.rectangle(pip_resized, (0, 0), (pip_w-1, pip_h-1), (255, 255, 255), 2)
     
-    # Add label
     cv2.putText(pip_resized, f"{pip_label} {pip_fps}fps", 
                (5, pip_h - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
     
-    # Place in top-right corner
     margin = 10
     main_frame[margin:margin+pip_h, w-pip_w-margin:w-margin] = pip_resized
     
@@ -156,7 +146,6 @@ def main():
                        help='Base port number (default: 5000)')
     args = parser.parse_args()
     
-    # Calculate ports
     sensor_port = args.port
     back_port = args.port + 1
     front_port = args.port + 2
@@ -179,7 +168,6 @@ def main():
     print("    f - Toggle fullscreen")
     print("=" * 60)
     
-    # Start receivers
     sensor_receiver = SensorReceiver(port=sensor_port)
     back_receiver = VideoReceiver(port=back_port, name="Back")
     front_receiver = VideoReceiver(port=front_port, name="Front")
@@ -188,10 +176,8 @@ def main():
     back_receiver.start()
     front_receiver.start()
     
-    # Wait a moment for threads to start
     time.sleep(0.5)
     
-    # Create window
     window_name = 'Android Dual Camera Stream'
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
     cv2.resizeWindow(window_name, 1280, 480)
@@ -202,12 +188,10 @@ def main():
     
     try:
         while True:
-            # Get frames
             back_frame = back_receiver.frame
             front_frame = front_receiver.frame
             sensor = sensor_receiver.data
             
-            # Create display based on mode
             if display_mode == DisplayMode.BACK_ONLY:
                 if back_frame is not None:
                     frame = back_frame.copy()
@@ -225,7 +209,6 @@ def main():
                     frame = create_waiting_frame(text="Waiting for Front Camera...")
                     
             elif display_mode == DisplayMode.SIDE_BY_SIDE:
-                # Create side by side view
                 if back_frame is not None:
                     back = back_frame.copy()
                     back = draw_overlay(back, sensor, back_receiver.fps, 
@@ -240,7 +223,6 @@ def main():
                 else:
                     front = create_waiting_frame(text="Front: Waiting...")
                 
-                # Resize to same height
                 target_h = max(back.shape[0], front.shape[0])
                 back = resize_to_height(back, target_h)
                 front = resize_to_height(front, target_h)
@@ -269,12 +251,10 @@ def main():
                 if back_frame is not None:
                     frame = create_pip_view(frame, back_frame, "BACK", back_receiver.fps)
             
-            # Draw mode indicator
             frame = draw_mode_indicator(frame, display_mode)
             
             cv2.imshow(window_name, frame)
             
-            # Handle key presses
             key = cv2.waitKey(1) & 0xFF
             
             if key == ord('q'):
@@ -322,7 +302,6 @@ def main():
     front_receiver.stop()
     cv2.destroyAllWindows()
     
-    # Print final stats
     print("\n📊 Final Statistics:")
     print(f"  Sensor: {sensor_receiver.packet_count} packets")
     print(f"  Back:   {back_receiver.frame_count} frames")
