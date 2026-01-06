@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Simple Console Receiver - No OpenCV required
 Displays sensor data and frame statistics in terminal
@@ -20,12 +19,10 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 
-# Ports
 DEFAULT_SENSOR_PORT = 5000
 DEFAULT_VIDEO_BACK_PORT = 5001
 DEFAULT_VIDEO_FRONT_PORT = 5002
 
-# Header size for video packets
 HEADER_SIZE = 29
 
 
@@ -54,13 +51,11 @@ class SimpleReceiver:
         self.stats = Stats()
         self.latest_sensor = {}
         
-        # Rate counters
         self._sensor_counter = 0
         self._back_counter = 0
         self._front_counter = 0
         self._last_time = time.time()
         
-        # Frame buffers for reassembly
         self._back_buffer = defaultdict(dict)
         self._front_buffer = defaultdict(dict)
     
@@ -112,22 +107,18 @@ class SimpleReceiver:
                 if len(data) < HEADER_SIZE:
                     continue
                 
-                # Parse header
                 frame_id = struct.unpack('>Q', data[1:9])[0]
                 chunk_idx = struct.unpack('>I', data[9:13])[0]
                 total_chunks = struct.unpack('>I', data[13:17])[0]
                 data_len = struct.unpack('>I', data[25:29])[0]
                 
-                # Track bytes
                 if camera == 'back':
                     self.stats.back_bytes += len(data)
                 else:
                     self.stats.front_bytes += len(data)
                 
-                # Add chunk to buffer
                 buffer[frame_id][chunk_idx] = True
                 
-                # Check if frame complete
                 if len(buffer[frame_id]) == total_chunks:
                     if camera == 'back':
                         self.stats.back_frames += 1
@@ -137,7 +128,6 @@ class SimpleReceiver:
                         self._front_counter += 1
                     del buffer[frame_id]
                 
-                # Cleanup old frames
                 old = [fid for fid in buffer if frame_id - fid > 10]
                 for fid in old:
                     del buffer[fid]
@@ -165,7 +155,6 @@ class SimpleReceiver:
     
     def display(self):
         """Display current stats."""
-        # Clear screen
         os.system('cls' if os.name == 'nt' else 'clear')
         
         print("=" * 60)
@@ -186,7 +175,6 @@ class SimpleReceiver:
               f"{self.stats.front_bytes / 1024 / 1024:.1f} MB")
         print("-" * 60)
         
-        # Display sensor data
         if self.latest_sensor:
             imu = self.latest_sensor.get('imu', {})
             acc = imu.get('acc', [0, 0, 0])
