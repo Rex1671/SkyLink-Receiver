@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 OpenCV Receiver - Single camera display with sensor overlay
 
@@ -23,7 +22,6 @@ except ImportError:
 from utils import SensorReceiver, VideoReceiver
 
 
-# Default ports
 DEFAULT_SENSOR_PORT = 5000
 DEFAULT_VIDEO_BACK_PORT = 5001
 DEFAULT_VIDEO_FRONT_PORT = 5002
@@ -33,17 +31,14 @@ def draw_overlay(frame, sensor_data, fps, camera_name, sensor_rate):
     """Draw sensor data overlay on frame."""
     h, w = frame.shape[:2]
     
-    # Semi-transparent background
     overlay = frame.copy()
     cv2.rectangle(overlay, (5, 5), (280, 160), (0, 0, 0), -1)
     cv2.addWeighted(overlay, 0.6, frame, 0.4, 0, frame)
     
-    # Title
     y = 25
     cv2.putText(frame, f"{camera_name} | {fps} FPS | Sensor: {sensor_rate} Hz", 
                (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
     
-    # Sensor data
     d = sensor_data
     y += 25
     cv2.putText(frame, f"Accel:  X:{d.acc[0]:6.2f}  Y:{d.acc[1]:6.2f}  Z:{d.acc[2]:6.2f}", 
@@ -68,7 +63,6 @@ def create_waiting_frame(width=640, height=480, text="Waiting for stream..."):
     """Create a placeholder frame."""
     frame = np.zeros((height, width, 3), dtype=np.uint8)
     
-    # Draw text centered
     font = cv2.FONT_HERSHEY_SIMPLEX
     text_size = cv2.getTextSize(text, font, 0.8, 2)[0]
     x = (width - text_size[0]) // 2
@@ -86,7 +80,6 @@ def main():
                        help='Which camera to display (default: back)')
     args = parser.parse_args()
     
-    # Calculate ports
     sensor_port = args.port
     video_port = args.port + 1 if args.camera == 'back' else args.port + 2
     camera_name = args.camera.upper()
@@ -101,14 +94,12 @@ def main():
     print("  Press 's' to save screenshot")
     print("=" * 50)
     
-    # Start receivers
     sensor_receiver = SensorReceiver(port=sensor_port)
     video_receiver = VideoReceiver(port=video_port, name=camera_name)
     
     sensor_receiver.start()
     video_receiver.start()
     
-    # Create window
     window_name = f'Android Stream - {camera_name}'
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
     cv2.resizeWindow(window_name, 800, 600)
@@ -117,7 +108,6 @@ def main():
     
     try:
         while True:
-            # Get latest frame
             if video_receiver.frame is not None:
                 frame = video_receiver.frame.copy()
                 frame = draw_overlay(
@@ -132,12 +122,10 @@ def main():
             
             cv2.imshow(window_name, frame)
             
-            # Handle key presses
             key = cv2.waitKey(1) & 0xFF
             if key == ord('q'):
                 break
             elif key == ord('s'):
-                # Save screenshot
                 filename = f"screenshot_{camera_name}_{screenshot_count}.jpg"
                 cv2.imwrite(filename, frame)
                 print(f"Saved: {filename}")
