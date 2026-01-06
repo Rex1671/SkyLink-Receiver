@@ -1,4 +1,3 @@
-#!/bin/bash
 
 echo "========================================"
 echo " Android Stream Receiver"
